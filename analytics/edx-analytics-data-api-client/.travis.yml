@@ -1,0 +1,26 @@
+language: python
+matrix:
+  include:
+    - python: 2.7
+      env: TOXENV=py27
+    - python: 3.6
+      env: TOXENV=py36
+  allow_failures:
+    - env: TOXENV=py36
+cache: pip
+sudo: false
+install:
+- pip install coveralls
+- pip install -r requirements.txt
+script: tox
+after_success:
+- coveralls
+- bash ./scripts/build-stats-to-datadog.sh
+deploy:
+  provider: pypi
+  user: edx
+  distributions: sdist bdist_wheel
+  on:
+    tags: true
+  password:
+    secure: niAkz7MPmeGxu+dgicFGm8SydYPy0PYZI8jn/Rcs+B9ASPt8oJ0sFxGLtYLl7b0Rg9UcRrHHfoLOMWYK/0n+cdgGPJEmtXHnxBgzSdliYl5kO16A3omK4s7a8794qJ+4DM/LraFc2jU3Fg1t2PJZp4BuNMVIpSch3iZ3bvWhh/s=
