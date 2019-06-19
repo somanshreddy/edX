@@ -12,6 +12,7 @@ from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from opaque_keys.edx.keys import CourseKey
+from collections import defaultdict
 
 from analytics_data_api.constants import enrollment_modes
 from analytics_data_api.utils import dictfetchall, get_course_report_download_details
@@ -30,6 +31,7 @@ class BaseCourseView(generics.ListAPIView):
 
     def get(self, request, *args, **kwargs):
         self.course_id = self.kwargs.get('course_id')
+        print("base called")
         start_date = request.query_params.get('start_date')
         end_date = request.query_params.get('end_date')
         timezone = utc
@@ -68,7 +70,14 @@ class BaseCourseView(generics.ListAPIView):
         return super(BaseCourseView, self).finalize_response(request, response, *args, **kwargs)
 
 
+# BEGIN
+# Added by Somansh and Thanusha
+# Created a base class for date filtering
 class BaseCourseActivityView(BaseCourseView):
+    """
+        Base class that has a method for date filtering that is inherited
+        by all course_activity classes
+    """
     def apply_date_filtering(self, queryset):
         if self.start_date or self.end_date:
             # Filter by start/end date
@@ -86,6 +95,7 @@ class BaseCourseActivityView(BaseCourseView):
         return queryset
 
 
+# This is the original class with the date_filtering method removed
 # pylint: disable=line-too-long
 class CourseActivityWeeklyView(BaseCourseActivityView):
     """
@@ -178,18 +188,23 @@ class CourseActivityWeeklyView(BaseCourseActivityView):
 
         return formatted_data
 
+
+# This is the new class-based view for Gender
 class CourseActivityWeeklyGenderView(BaseCourseActivityView):
     """
-    Get counts of users who performed specific activities in a course.
+
+
+    Get counts of users who performed specific activities in a course based on their gender
+
 
     **Example request**
 
-        GET /api/v0/courses/{course_id}/activity/gender
+        GET /api/v0/courses/{course_id}/activity/{gender}/
 
     **Response Values**
 
         Returns a list of key/value pairs for student activities, as well as the
-        interval start and end dates and the course ID.
+        interval start and end dates and the course ID and gender.
 
             * any: The number of unique users who performed any action in the
               course, including actions not counted in other categories in the
@@ -207,6 +222,7 @@ class CourseActivityWeeklyGenderView(BaseCourseActivityView):
               included in returned values.
             * course_id: The ID of the course for which data is returned.
             * created: The date the counts were computed.
+            * gender: The gender of the user.
 
     **Parameters**
 
@@ -222,34 +238,66 @@ class CourseActivityWeeklyGenderView(BaseCourseActivityView):
         start_date -- Date after which all data is returned (inclusive).
 
         end_date -- Date before which all data is returned (exclusive).
+
+
+
     """
 
     slug = u'activity-gender'
     serializer_class = serializers.CourseActivityByGenderSerializer
     model = models.CourseActivityByGender
+    gender = None
+
+    def get(self, request, *args, **kwargs):
+        print("child called")
+        self.gender = self.kwargs.get('gender')
+        print(self.gender)
+        return super(CourseActivityWeeklyGenderView,self).get(request,*args, **kwargs)
 
     def get_queryset(self):
+        print("queryset called")
         queryset = super(CourseActivityWeeklyGenderView, self).get_queryset()
+        queryset = self.model.objects.filter(gender=self.gender)
+        queryset = self.apply_date_filtering(queryset)
         formatted_data = []
 
-        for key, group in groupby(queryset, lambda x: (x.course_id, x.interval_start, x.interval_end)):
+        for key, group in groupby(queryset, lambda x: (x.course_id, x.interval_start, x.interval_end, x.activity_type)):
             # Iterate over groups and create a single item with gender data
-            item = {
-                u'course_id': key[0],
-                u'interval_start': key[1],
-                u'interval_end': key[2],
-                u'created': None,
-                u'male': 0,
-                u'female': 0,
-                u'other': 0,
-                u'unknown': 0
-            }
+            item = defaultdict()
+
+            item[u'course_id'] = key[0]
+            item[u'interval_start']= key[1]
+            item[u'interval_end'] = key[2]
+            item[u'created'] = None
+            # item[u'any'] = {}
+                # u'any': {u'male': 0,
+                #          u'female': 0,
+                #          u'other': 0,
+                #          u'unknown': 0
+                #          },
+                # u'posted_forum': {u'male': 0,
+                #                   u'female': 0,
+                #                   u'other': 0,
+                #                   u'unknown': 0
+                #                   },
+                # u'played_video': {u'male': 0,
+                #                   u'female': 0,
+                #                   u'other': 0,
+                #                   u'unknown': 0
+                #                   },
+                # u'attempted_problem': {u'male': 0,
+                #                        u'female': 0,
+                #                        u'other': 0,
+                #                        u'unknown': 0
+                #                        }
+
+            # }
 
             for activity in group:
+                activity_type = self._format_activity_type(activity.activity_type)
                 gender = activity.cleaned_gender.lower()
-                count = item.get(gender, 0)
-                count += activity.count
-                item[gender] = count
+                # item[u'any'] = 5
+                item[activity_type] = {gender: activity.count}
                 item[u'created'] = max(activity.created, item[u'created']) if item[u'created'] else activity.created
 
             formatted_data.append(item)
@@ -291,6 +339,7 @@ class CourseActivityWeeklyGenderView(BaseCourseActivityView):
             formatted_data.append(item)
 
         return formatted_data
+# END
 
 
 class CourseActivityMostRecentWeekView(generics.RetrieveAPIView):

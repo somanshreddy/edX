@@ -42,29 +42,6 @@ class CourseActivityByWeekSerializer(serializers.ModelSerializer):
         fields = ('interval_start', 'interval_end', 'activity_type', 'count', 'course_id')
 
 
-class CourseActivityByGenderSerializer(serializers.ModelSerializer):
-
-    female = serializers.ReadOnlyField()
-    male = serializers.ReadOnlyField()
-    other = serializers.ReadOnlyField()
-    unknown = serializers.ReadOnlyField()
-
-    def get_female(self, obj):
-        return obj.get('female', None)
-
-    def get_male(self, obj):
-        return obj.get('male', None)
-
-    def get_other(self, obj):
-        return obj.get('other', None)
-
-    def get_unknown(self, obj):
-        return obj.get('unknown', None)
-
-    class Meta(object):
-        model = models.CourseEnrollmentByGender
-        fields = ('course_id', 'female', 'male', 'other', 'unknown', 'created')
-
 class ModelSerializerWithCreatedField(serializers.ModelSerializer):
     created = serializers.DateTimeField(format=settings.DATETIME_FORMAT)
 
@@ -331,9 +308,41 @@ class CourseActivityWeeklySerializer(serializers.ModelSerializer):
     created = serializers.DateTimeField(format=settings.DATETIME_FORMAT)
 
     class Meta(object):
-        model = models.BaseCourseActivityWeekly
+        model = models.CourseActivityWeekly
         fields = ('interval_start', 'interval_end', 'course_id', 'any', 'attempted_problem', 'played_video',
                   'posted_forum', 'created')
+
+
+class CourseActivityByGenderSerializer(serializers.ModelSerializer):
+
+    female = serializers.ReadOnlyField()
+    male = serializers.ReadOnlyField()
+    other = serializers.ReadOnlyField()
+    unknown = serializers.ReadOnlyField()
+    interval_start = serializers.DateTimeField(format=settings.DATETIME_FORMAT)
+    interval_end = serializers.DateTimeField(format=settings.DATETIME_FORMAT)
+    any = serializers.DictField(required=False)
+    attempted_problem = serializers.DictField(required=False)
+    played_video = serializers.DictField(required=False)
+    posted_forum = serializers.DictField(required=False)
+    created = serializers.DateTimeField(format=settings.DATETIME_FORMAT)
+
+    def get_female(self, obj):
+        return obj.get('female', None)
+
+    def get_male(self, obj):
+        return obj.get('male', None)
+
+    def get_other(self, obj):
+        return obj.get('other', None)
+
+    def get_unknown(self, obj):
+        return obj.get('unknown', None)
+
+    class Meta(object):
+        model = models.CourseActivityByGender
+        fields = ('course_id', 'female', 'male', 'other', 'unknown', 'created', 'any', 'attempted_problem', 'played_video',
+                  'posted_forum', 'interval_start', 'interval_end')
 
 
 class VideoSerializer(ModelSerializerWithCreatedField):

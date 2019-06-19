@@ -3,9 +3,13 @@ from django.conf.urls import url
 from analytics_data_api.v0.urls import COURSE_ID_PATTERN
 from analytics_data_api.v0.views import courses as views
 
+GENDER_PATTERN = r'(?P<gender>m|f|o|u)'
+# BEGIN
+# Added by Somansh and Thanusha
+# Added four URLS under activity
 COURSE_URLS = [
     ('activity', views.CourseActivityWeeklyView, 'activity'),
-    ('activity/gender', views.CourseActivityWeeklyGenderView, 'activity_by_gender'),
+    ('activity/gender/(?P<gender>m|f|o|u)', views.CourseActivityWeeklyGenderView, 'activity_by_gender'),
     ('recent_activity', views.CourseActivityMostRecentWeekView, 'recent_activity'),
     ('enrollment', views.CourseEnrollmentView, 'enrollment_latest'),
     ('enrollment/mode', views.CourseEnrollmentModeView, 'enrollment_by_mode'),
@@ -18,6 +22,7 @@ COURSE_URLS = [
     ('videos', views.VideosListView, 'videos'),
     ('reports/(?P<report_name>[a-zA-Z0-9_]+)', views.ReportDownloadView, 'reports'),
 ]
+# END
 
 urlpatterns = []
 

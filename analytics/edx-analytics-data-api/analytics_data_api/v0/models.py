@@ -12,21 +12,25 @@ from analytics_data_api.constants.engagement_types import EngagementType
 from analytics_data_api.utils import date_range
 
 
+# BEGIN
+# Added by Somansh and Thanusha
+# CONFIRM WITH MAAM
 class BaseCourseModel(models.Model):
     course_id = models.CharField(db_index=True, max_length=255)
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta(object):
         abstract = True
-        managed = True
+        managed = True             # Added this to let this create table
 
 
+# Created an abstract base class for the model that contains the common fields
 class BaseCourseActivityWeekly(BaseCourseModel):
     """A count of unique users who performed a particular action during a week."""
 
     class Meta(BaseCourseModel.Meta):
         abstract = True
-        managed = True
+        managed = True             # Added this
 
     interval_start = models.DateTimeField()
     interval_end = models.DateTimeField(db_index=True)
@@ -39,6 +43,7 @@ class BaseCourseActivityWeekly(BaseCourseModel):
         return cls.objects.filter(course_id=course_id, activity_type=activity_type).latest('interval_end')
 
 
+# This is the actual course activity table that inherits from the base class
 class CourseActivityWeekly(BaseCourseActivityWeekly):
     """A count of unique users who performed a particular action during a week."""
 
@@ -49,7 +54,9 @@ class CourseActivityWeekly(BaseCourseActivityWeekly):
         get_latest_by = 'interval_end'
 
 
+# This class adds the gender field to the base model
 class CourseActivityByGender(BaseCourseActivityWeekly):
+    """A count of unique users who performed a particular action during a week by their gender."""
     CLEANED_GENDERS = {
         u'f': genders.FEMALE,
         u'm': genders.MALE,
@@ -68,7 +75,8 @@ class CourseActivityByGender(BaseCourseActivityWeekly):
     class Meta(BaseCourseActivityWeekly.Meta):
         db_table = 'course_activity_gender'
         ordering = ('interval_end', 'interval_start', 'course_id', 'gender')
-        unique_together = [('course_id', 'interval_end', 'interval_start', 'gender')]
+        unique_together = [('course_id', 'interval_end', 'interval_start', 'activity_type', 'gender')]
+# END
 
 
 class BaseCourseEnrollment(BaseCourseModel):
