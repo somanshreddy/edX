@@ -325,6 +325,7 @@ class CourseActivityByGenderSerializer(serializers.ModelSerializer):
     attempted_problem = serializers.DictField(required=False)
     played_video = serializers.DictField(required=False)
     posted_forum = serializers.DictField(required=False)
+    resource_usage = serializers.DictField(required=False)
     created = serializers.DateTimeField(format=settings.DATETIME_FORMAT)
 
     def get_female(self, obj):
@@ -342,7 +343,7 @@ class CourseActivityByGenderSerializer(serializers.ModelSerializer):
     class Meta(object):
         model = models.CourseActivityByGender
         fields = ('course_id', 'female', 'male', 'other', 'unknown', 'created', 'any', 'attempted_problem', 'played_video',
-                  'posted_forum', 'interval_start', 'interval_end')
+                  'posted_forum', 'resource_usage', 'interval_start', 'interval_end')
 
 
 class VideoSerializer(ModelSerializerWithCreatedField):

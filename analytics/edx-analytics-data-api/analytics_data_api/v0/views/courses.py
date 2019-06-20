@@ -31,7 +31,6 @@ class BaseCourseView(generics.ListAPIView):
 
     def get(self, request, *args, **kwargs):
         self.course_id = self.kwargs.get('course_id')
-        print("base called")
         start_date = request.query_params.get('start_date')
         end_date = request.query_params.get('end_date')
         timezone = utc
@@ -199,7 +198,7 @@ class CourseActivityWeeklyGenderView(BaseCourseActivityView):
 
     **Example request**
 
-        GET /api/v0/courses/{course_id}/activity/{gender}/
+        GET /api/v0/courses/{course_id}/activity/gender/{label}/
 
     **Response Values**
 
@@ -226,6 +225,13 @@ class CourseActivityWeeklyGenderView(BaseCourseActivityView):
 
     **Parameters**
 
+        Label can be of the following four types
+            -- played_video
+            -- posted_forum
+            -- attemped_problem
+            -- active
+            -- resource_usage
+
         You can specify the start and end dates for the time period for which
         you want to get activity.
 
@@ -246,58 +252,40 @@ class CourseActivityWeeklyGenderView(BaseCourseActivityView):
     slug = u'activity-gender'
     serializer_class = serializers.CourseActivityByGenderSerializer
     model = models.CourseActivityByGender
-    gender = None
+    label = None
 
     def get(self, request, *args, **kwargs):
-        print("child called")
-        self.gender = self.kwargs.get('gender')
-        print(self.gender)
-        return super(CourseActivityWeeklyGenderView,self).get(request,*args, **kwargs)
+        self.label = self.kwargs.get('label')
+        self.label.upper()
+        return super(CourseActivityWeeklyGenderView, self).get(request, *args, **kwargs)
 
     def get_queryset(self):
-        print("queryset called")
         queryset = super(CourseActivityWeeklyGenderView, self).get_queryset()
-        queryset = self.model.objects.filter(gender=self.gender)
+        queryset = self.model.objects.filter(activity_type=self.label)
         queryset = self.apply_date_filtering(queryset)
         formatted_data = []
 
-        for key, group in groupby(queryset, lambda x: (x.course_id, x.interval_start, x.interval_end, x.activity_type)):
+        for key, group in groupby(queryset, lambda x: (x.course_id, x.interval_start, x.interval_end)):
             # Iterate over groups and create a single item with gender data
-            item = defaultdict()
 
-            item[u'course_id'] = key[0]
-            item[u'interval_start']= key[1]
-            item[u'interval_end'] = key[2]
-            item[u'created'] = None
-            # item[u'any'] = {}
-                # u'any': {u'male': 0,
-                #          u'female': 0,
-                #          u'other': 0,
-                #          u'unknown': 0
-                #          },
-                # u'posted_forum': {u'male': 0,
-                #                   u'female': 0,
-                #                   u'other': 0,
-                #                   u'unknown': 0
-                #                   },
-                # u'played_video': {u'male': 0,
-                #                   u'female': 0,
-                #                   u'other': 0,
-                #                   u'unknown': 0
-                #                   },
-                # u'attempted_problem': {u'male': 0,
-                #                        u'female': 0,
-                #                        u'other': 0,
-                #                        u'unknown': 0
-                #                        }
-
-            # }
+            item = {
+                u'course_id': key[0],
+                u'interval_start': key[1],
+                u'interval_end': key[2],
+                u'created': None
+            }
 
             for activity in group:
                 activity_type = self._format_activity_type(activity.activity_type)
                 gender = activity.cleaned_gender.lower()
-                # item[u'any'] = 5
-                item[activity_type] = {gender: activity.count}
+
+                if item.get(activity_type) is None:
+                    item[activity_type] = {u'male': 0,
+                                           u'female': 0,
+                                           u'other': 0,
+                                           u'unknown': 0}
+
+                item[activity_type][gender] += activity.count
                 item[u'created'] = max(activity.created, item[u'created']) if item[u'created'] else activity.created
 
             formatted_data.append(item)
