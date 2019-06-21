@@ -313,6 +313,8 @@ class CourseActivityWeeklySerializer(serializers.ModelSerializer):
                   'posted_forum', 'created')
 
 
+# BEGIN
+# Added by Somansh and Thanusha
 class CourseActivityByGenderSerializer(serializers.ModelSerializer):
 
     female = serializers.ReadOnlyField()
@@ -345,6 +347,15 @@ class CourseActivityByGenderSerializer(serializers.ModelSerializer):
         fields = ('course_id', 'female', 'male', 'other', 'unknown', 'created', 'any', 'attempted_problem', 'played_video',
                   'posted_forum', 'resource_usage', 'interval_start', 'interval_end')
 
+
+class CourseActivityByEducationSerializer(serializers.ModelSerializer):
+    education_level = serializers.DictField(required=False)
+
+    class Meta(object):
+        model = models.CourseActivityByEducation
+        fields = ('course_id', 'interval_start', 'interval_end', 'education_level', 'created')
+
+# END
 
 class VideoSerializer(ModelSerializerWithCreatedField):
     class Meta(object):

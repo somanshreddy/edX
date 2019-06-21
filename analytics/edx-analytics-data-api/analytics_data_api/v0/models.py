@@ -21,7 +21,7 @@ class BaseCourseModel(models.Model):
 
     class Meta(object):
         abstract = True
-        managed = True             # Added this to let this create table
+        # managed = True             # Added this to let this create table
 
 
 # Created an abstract base class for the model that contains the common fields
@@ -30,7 +30,7 @@ class BaseCourseActivityWeekly(BaseCourseModel):
 
     class Meta(BaseCourseModel.Meta):
         abstract = True
-        managed = True             # Added this
+        # managed = True             # Added this
 
     interval_start = models.DateTimeField()
     interval_end = models.DateTimeField(db_index=True)
@@ -75,9 +75,18 @@ class CourseActivityByGender(BaseCourseActivityWeekly):
     class Meta(BaseCourseActivityWeekly.Meta):
         db_table = 'course_activity_gender'
         ordering = ('interval_end', 'interval_start', 'course_id', 'gender')
-        unique_together = [('course_id', 'interval_end', 'interval_start', 'activity_type', 'gender')]
-# END
+        # unique_together = [('course_id', 'interval_end', 'interval_start', 'activity_type', 'gender')]
 
+
+class CourseActivityByEducation(BaseCourseActivityWeekly):
+    education_level = models.CharField(max_length=255, null=True)
+
+    class Meta(BaseCourseActivityWeekly.Meta):
+        db_table = 'course_activity_education_level'
+        ordering = ('interval_end', 'interval_start', 'course_id', 'education_level')
+        unique_together = [('course_id', 'interval_end', 'interval_start', 'activity_type', 'education_level')]
+
+# END
 
 class BaseCourseEnrollment(BaseCourseModel):
     date = models.DateField(null=False, db_index=True)
@@ -87,7 +96,6 @@ class BaseCourseEnrollment(BaseCourseModel):
         abstract = True
         get_latest_by = 'date'
         index_together = [('course_id', 'date',)]
-        managed = True
 
 
 class CourseEnrollmentDaily(BaseCourseEnrollment):

@@ -9,6 +9,7 @@ from analytics_data_api.v0.views import courses as views
 COURSE_URLS = [
     ('activity', views.CourseActivityWeeklyView, 'activity'),
     ('activity/gender/(?P<label>[a-zA-Z_]+)', views.CourseActivityWeeklyGenderView, 'activity_by_gender'),
+    ('activity/education/(?P<label>[a-zA-Z_]+)', views.CourseActivityWeeklyEducationView, 'activity_by_education'),
     ('recent_activity', views.CourseActivityMostRecentWeekView, 'recent_activity'),
     ('enrollment', views.CourseEnrollmentView, 'enrollment_latest'),
     ('enrollment/mode', views.CourseEnrollmentModeView, 'enrollment_by_mode'),
