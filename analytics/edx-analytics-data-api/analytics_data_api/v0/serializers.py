@@ -350,6 +350,9 @@ class CourseActivityByGenderSerializer(serializers.ModelSerializer):
 
 class CourseActivityByEducationSerializer(serializers.ModelSerializer):
     education_level = serializers.DictField(required=False)
+    interval_start = serializers.DateTimeField(format=settings.DATETIME_FORMAT)
+    interval_end = serializers.DateTimeField(format=settings.DATETIME_FORMAT)
+    created = serializers.DateTimeField(format=settings.DATETIME_FORMAT)
 
     class Meta(object):
         model = models.CourseActivityByEducation
