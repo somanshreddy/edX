@@ -86,6 +86,14 @@ class CourseActivityByEducation(BaseCourseActivityWeekly):
         ordering = ('interval_end', 'interval_start', 'course_id', 'education_level')
         unique_together = [('course_id', 'interval_end', 'interval_start', 'activity_type', 'education_level')]
 
+class CourseActivityByAge(BaseCourseActivityWeekly):
+    age = models.IntegerField()             #check if it should be not NULL
+
+    class Meta(BaseCourseActivityWeekly.Meta):
+        db_table = 'course_activity_age'
+        ordering = ('interval_end', 'interval_start', 'course_id', 'age')
+        unique_together = [('course_id', 'interval_end', 'interval_start', 'activity_type', 'age')]
+
 # END
 
 class BaseCourseEnrollment(BaseCourseModel):

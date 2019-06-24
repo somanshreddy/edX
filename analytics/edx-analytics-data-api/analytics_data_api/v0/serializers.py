@@ -358,6 +358,16 @@ class CourseActivityByEducationSerializer(serializers.ModelSerializer):
         model = models.CourseActivityByEducation
         fields = ('course_id', 'interval_start', 'interval_end', 'education_level', 'created')
 
+
+class CourseActivityByAgeSerializer(serializers.ModelSerializer):
+    age = serializers.DictField(required=False)
+    interval_start = serializers.DateTimeField(format=settings.DATETIME_FORMAT)
+    interval_end = serializers.DateTimeField(format=settings.DATETIME_FORMAT)
+    created = serializers.DateTimeField(format=settings.DATETIME_FORMAT)
+
+    class Meta(object):
+        model = models.CourseActivityByAge
+        fields = ('course_id', 'interval_start', 'interval_end', 'age', 'created')
 # END
 
 class VideoSerializer(ModelSerializerWithCreatedField):

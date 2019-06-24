@@ -402,9 +402,111 @@ class CourseActivityWeeklyEducationView(BaseCourseActivityView):
             }
 
             for activity in group:
-                education_level = activity.education_level.lower()
+                education_level = activity.education_level
+
+                if education_level is None:
+                    education_level = 'none'
 
                 item[u'education_level'][education_level] += activity.count
+                item[u'created'] = max(activity.created, item[u'created']) if item[u'created'] else activity.created
+
+            formatted_data.append(item)
+
+        return formatted_data
+
+    def _format_activity_type(self, activity_type):
+        activity_type = activity_type.lower()
+
+        # The data pipeline stores "any" as "active"; however, the API should display "any".
+        if activity_type == 'active':
+            activity_type = 'any'
+
+        return activity_type
+
+class CourseActivityWeeklyAgeView(BaseCourseActivityView):
+    """
+    Get counts of users who performed specific activities in a course based on their gender
+
+    **Example request**
+
+        GET /api/v0/courses/{course_id}/activity/gender/{label}/
+
+    **Response Values**
+
+        Returns a collection for each level of education reported by a user.
+        Each collection contains:
+
+            * course_id: The ID of the course for which data is returned.
+            * date: The date for which the enrollment count was computed.
+            * education_level: The education level for which the enrollment
+              count applies.
+            * count: The number of users who reported the specified education
+              level.
+            * created: The date the count was computed.
+
+    **Parameters**
+
+        You can specify the start and end dates for which to count enrolled
+        users.
+
+        You specify dates in the format: YYYY-mm-dd; for
+        example, ``2014-12-15``.
+
+        If no start or end dates are specified, the data for the previous day is
+        returned.
+
+        start_date -- Date after which enrolled students are counted (inclusive).
+
+        end_date -- Date before which enrolled students are counted (exclusive).
+    """
+    slug = u'activity-age'
+    serializer_class = serializers.CourseActivityByAgeSerializer
+    model = models.CourseActivityByAge
+
+    def get(self, request, *args, **kwargs):
+        self.label = self.kwargs.get('label')
+        self.label.upper()
+        return super(CourseActivityWeeklyAgeView, self).get(request, *args, **kwargs)
+
+    def get_queryset(self):
+        queryset = super(CourseActivityWeeklyAgeView, self).get_queryset()
+        queryset = self.model.objects.filter(activity_type=self.label)
+        queryset = self.apply_date_filtering(queryset)
+        formatted_data = []
+
+        for key, group in groupby(queryset, lambda x: (x.course_id, x.interval_start, x.interval_end)):
+            # Iterate over groups and create a single item with gender data
+
+            item = {
+                u'course_id': key[0],
+                u'interval_start': key[1],
+                u'interval_end': key[2],
+                u'created': None,
+                u'age': {
+                    u'<=25': 0,
+                    u'>25 and <=40': 0,
+                    u'>40': 0,
+                }
+            }
+
+            import datetime
+            now = datetime.datetime.now()
+            print now.year
+
+            for activity in group:
+                # age = activity.age
+                # birth_year = activity.birth_year
+                birth_year = 1961
+                age = now.year - birth_year
+
+                if age <= 25:
+                    str = u'<=25'
+                elif age > 25 and age <=40:
+                    str = u'>25 and <=40'
+                else:
+                    str = u'>40'
+
+                item[u'age'][str] += activity.count
                 item[u'created'] = max(activity.created, item[u'created']) if item[u'created'] else activity.created
 
             formatted_data.append(item)

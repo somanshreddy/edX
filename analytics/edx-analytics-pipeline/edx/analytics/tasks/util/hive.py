@@ -500,3 +500,6 @@ class OverwriteAwareHiveQueryDataTask(WarehouseMixin, OverwriteOutputMixin, Hive
         for requirement in super(OverwriteAwareHiveQueryDataTask, self).requires():
             yield requirement
         yield self.partition_task
+
+
+
