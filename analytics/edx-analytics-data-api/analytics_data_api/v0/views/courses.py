@@ -563,13 +563,11 @@ class CourseActivityWeeklyCountryView(BaseCourseActivityView):
     model = models.CourseActivityByCountry
 
     def get(self, request, *args, **kwargs):
-        self.label = self.kwargs.get('label')
-        self.label.upper()
         self.country = self.kwargs.get('country')
         return super(CourseActivityWeeklyCountryView, self).get(request, *args, **kwargs)
 
     def get_queryset(self):
-        queryset = self.model.objects.filter(activity_type=self.label, course_id=self.course_id,
+        queryset = self.model.objects.filter(course_id=self.course_id,
                                              country_name=self.country)
         queryset = self.apply_date_filtering(queryset)
         formatted_data = []
@@ -584,8 +582,20 @@ class CourseActivityWeeklyCountryView(BaseCourseActivityView):
         }
 
         for activity in queryset:
-            print(activity.interval_start)
-            item[u'location'][activity.location] = activity.count
+            activity_type = self._format_activity_type(activity.activity_type)
+
+            if item[u'location'].get(activity.location) is None:
+                item[u'location'][activity.location] = {u'played_video': 0,
+                                                        u'posted_forum': 0,
+                                                        u'attempted_problem': 0,
+                                                        u'any': 0}
+
+            # Creates a new key if there is an activity type not specified above
+            # Added so that code is scalable to handle new activity types
+            if item[u'location'][activity.location].get(activity_type) is None:
+                item[u'location'][activity.location][activity_type] = 0
+
+            item[u'location'][activity.location][activity_type] += activity.count
             item[u'created'] = max(activity.created, item[u'created']) if item[u'created'] else activity.created
 
         formatted_data.append(item)
