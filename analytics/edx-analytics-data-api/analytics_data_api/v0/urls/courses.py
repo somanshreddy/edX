@@ -5,13 +5,17 @@ from analytics_data_api.v0.views import courses as views
 
 # BEGIN
 # Added by Somansh and Thanusha
-# Added four URLS under activity
+# Added four URLs under activity
+# Added two URLs under country
 COURSE_URLS = [
     ('activity', views.CourseActivityWeeklyView, 'activity'),
     ('activity/gender/(?P<label>[a-zA-Z_]+)', views.CourseActivityWeeklyGenderView, 'activity_by_gender'),
     ('activity/education/(?P<label>[a-zA-Z_]+)', views.CourseActivityWeeklyEducationView, 'activity_by_education'),
     ('activity/age/(?P<label>[a-zA-Z_]+)', views.CourseActivityWeeklyAgeView, 'activity_by_age'),
+    ('activity/country/(?P<label>[a-zA-Z_]+)/(?P<country>[a-zA-Z_]+)', views.CourseActivityWeeklyCountryView, 'activity_by_country'),
     ('recent_activity', views.CourseActivityMostRecentWeekView, 'recent_activity'),
+    ('country', views.CountryListView, 'country'),
+    ('country/(?P<country>[a-zA-Z ]+)', views.StateListByCountryView, 'state_by_country'),
     ('enrollment', views.CourseEnrollmentView, 'enrollment_latest'),
     ('enrollment/mode', views.CourseEnrollmentModeView, 'enrollment_by_mode'),
     ('enrollment/birth_year', views.CourseEnrollmentByBirthYearView, 'enrollment_by_birth_year'),

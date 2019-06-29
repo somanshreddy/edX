@@ -21,7 +21,6 @@ class BaseCourseModel(models.Model):
 
     class Meta(object):
         abstract = True
-        # managed = True             # Added this to let this create table
 
 
 # Created an abstract base class for the model that contains the common fields
@@ -30,7 +29,6 @@ class BaseCourseActivityWeekly(BaseCourseModel):
 
     class Meta(BaseCourseModel.Meta):
         abstract = True
-        # managed = True             # Added this
 
     interval_start = models.DateTimeField()
     interval_end = models.DateTimeField(db_index=True)
@@ -86,6 +84,7 @@ class CourseActivityByEducation(BaseCourseActivityWeekly):
         ordering = ('interval_end', 'interval_start', 'course_id', 'education_level')
         unique_together = [('course_id', 'interval_end', 'interval_start', 'activity_type', 'education_level')]
 
+
 class CourseActivityByAge(BaseCourseActivityWeekly):
     age = models.IntegerField()             #check if it should be not NULL
 
@@ -94,6 +93,24 @@ class CourseActivityByAge(BaseCourseActivityWeekly):
         ordering = ('interval_end', 'interval_start', 'course_id', 'age')
         unique_together = [('course_id', 'interval_end', 'interval_start', 'activity_type', 'age')]
 
+class CourseActivityByCountry(BaseCourseActivityWeekly):
+    country_code = models.CharField(max_length=255, null=False)
+    country_name = models.CharField(max_length=255, null=False)
+    location = models.CharField(max_length=255, null=False)
+
+    class Meta(BaseCourseActivityWeekly.Meta):
+        db_table = 'course_activity_location'
+        ordering = ('interval_end', 'interval_start', 'course_id', 'country_name', 'location')
+        unique_together = [('course_id', 'interval_end', 'interval_start', 'activity_type', 'country_name', 'location')]
+
+class CountryList(models.Model):
+    country_code = models.CharField(max_length=255, null=False)
+    country_name = models.CharField(max_length=255, null=False)
+    location = models.CharField(max_length=255, null=False)
+
+    class Meta(object):
+        db_table = 'course_activity_location'
+        ordering = ('country_code', 'country_name', 'location')
 # END
 
 class BaseCourseEnrollment(BaseCourseModel):

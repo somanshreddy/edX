@@ -573,3 +573,43 @@ class InsertToMysqlLastCountryPerCourseTask(
             geolocation_data=self.geolocation_data,
             overwrite=self.overwrite,
         )
+
+
+class InsertToMysqlLastLocationOfUser(
+        LastCountryOfUserDownstreamMixin,
+        MysqlInsertTask):  # pylint: disable=abstract-method
+    """
+    Define course_enrollment_location_current table.
+    """
+    @property
+    def table(self):
+        return "last_location_of_user_id"
+
+    @property
+    def columns(self):
+        return LastCountryOfUserRecord.get_sql_schema()
+
+    @property
+    def indexes(self):
+        return [
+            ('course_id',),
+            # Note that the order here is extremely important. The API query pattern needs to filter first by course and
+            # then by date.
+            ('course_id', 'date'),
+        ]
+
+    @property
+    def insert_source_task(self):
+        return QueryLastLocationOfUserTask(
+            mapreduce_engine=self.mapreduce_engine,
+            n_reduce_tasks=self.n_reduce_tasks,
+            source=self.source,
+            pattern=self.pattern,
+            warehouse_path=self.warehouse_path,
+            interval=self.interval,
+            interval_start=self.interval_start,
+            interval_end=self.interval_end,
+            overwrite_n_days=self.overwrite_n_days,
+            geolocation_data=self.geolocation_data,
+            overwrite=self.overwrite,
+        )

@@ -12,7 +12,6 @@ from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from opaque_keys.edx.keys import CourseKey
-from collections import defaultdict
 
 from analytics_data_api.constants import enrollment_modes
 from analytics_data_api.utils import dictfetchall, get_course_report_download_details
@@ -331,11 +330,11 @@ class CourseActivityWeeklyGenderView(BaseCourseActivityView):
 
 class CourseActivityWeeklyEducationView(BaseCourseActivityView):
     """
-    Get counts of users who performed specific activities in a course based on their gender
+    Get counts of users who performed specific activities in a course based on their education_level
 
     **Example request**
 
-        GET /api/v0/courses/{course_id}/activity/gender/{label}/
+        GET /api/v0/courses/{course_id}/activity/education/{label}/
 
     **Response Values**
 
@@ -422,6 +421,7 @@ class CourseActivityWeeklyEducationView(BaseCourseActivityView):
             activity_type = 'any'
 
         return activity_type
+
 
 class CourseActivityWeeklyAgeView(BaseCourseActivityView):
     """
@@ -521,6 +521,232 @@ class CourseActivityWeeklyAgeView(BaseCourseActivityView):
             activity_type = 'any'
 
         return activity_type
+
+class CourseActivityWeeklyCountryView(BaseCourseActivityView):
+    """
+    Get counts of users who performed specific activities in a course based on their gender
+
+    **Example request**
+
+        GET /api/v0/courses/{course_id}/activity/gender/{label}/
+
+    **Response Values**
+
+        Returns a collection for each level of education reported by a user.
+        Each collection contains:
+
+            * course_id: The ID of the course for which data is returned.
+            * date: The date for which the enrollment count was computed.
+            * education_level: The education level for which the enrollment
+              count applies.
+            * count: The number of users who reported the specified education
+              level.
+            * created: The date the count was computed.
+
+    **Parameters**
+
+        You can specify the start and end dates for which to count enrolled
+        users.
+
+        You specify dates in the format: YYYY-mm-dd; for
+        example, ``2014-12-15``.
+
+        If no start or end dates are specified, the data for the previous day is
+        returned.
+
+        start_date -- Date after which enrolled students are counted (inclusive).
+
+        end_date -- Date before which enrolled students are counted (exclusive).
+    """
+    slug = u'activity-country'
+    serializer_class = serializers.CourseActivityByCountrySerializer
+    model = models.CourseActivityByCountry
+
+    def get(self, request, *args, **kwargs):
+        self.label = self.kwargs.get('label')
+        self.label.upper()
+        self.country = self.kwargs.get('country')
+        return super(CourseActivityWeeklyCountryView, self).get(request, *args, **kwargs)
+
+    def get_queryset(self):
+        queryset = self.model.objects.filter(activity_type=self.label, course_id=self.course_id,
+                                             country_name=self.country)
+        queryset = self.apply_date_filtering(queryset)
+        formatted_data = []
+
+        item = {
+            u'course_id': queryset[0].course_id,
+            u'interval_start': queryset[0].interval_start,
+            u'interval_end': queryset[0].interval_end,
+            u'created': None,
+            u'country_code': queryset[0].country_code,
+            u'location': {}
+        }
+
+        for activity in queryset:
+            print(activity.interval_start)
+            item[u'location'][activity.location] = activity.count
+            item[u'created'] = max(activity.created, item[u'created']) if item[u'created'] else activity.created
+
+        formatted_data.append(item)
+
+        return formatted_data
+
+    def _format_activity_type(self, activity_type):
+        activity_type = activity_type.lower()
+
+        # The data pipeline stores "any" as "active"; however, the API should display "any".
+        if activity_type == 'active':
+            activity_type = 'any'
+
+        return activity_type
+
+class CountryListView(BaseCourseView):
+    """
+    Get the number of enrolled users by location.
+
+    Location is calculated based on the user's IP address. Users whose location
+    cannot be determined are counted as having a country.name of UNKNOWN.
+
+    Countries are denoted by their ISO 3166 country code.
+
+    **Example request**
+
+        GET /api/v0/courses/{course_id}/enrollment/location/
+
+    **Response Values**
+
+        Returns counts of genders specified by users:
+
+            * course_id: The ID of the course for which data is returned.
+            * date: The date for which the enrollment count was computed.
+            * country: Contains the following fields:
+
+              * alpha2: The two-letter country code.
+              * alpha3: The three-letter country code.
+              * name: The country name.
+            * count: The count of users from the country.
+            * created: The date the count was computed.
+
+    **Parameters**
+
+        You can specify the start and end dates for which to count enrolled
+        users.
+
+        You specify dates in the format: YYYY-mm-dd; for
+        example, ``2014-12-15``.
+
+        If no start or end dates are specified, the data for the previous day is
+        returned.
+
+        start_date -- Date after which enrolled students are counted (inclusive).
+
+        end_date -- Date before which enrolled students are counted (exclusive).
+    """
+
+    slug = u'country'
+    serializer_class = serializers.CountryListSerializer
+    model = models.CountryList
+
+    def get_queryset(self):
+        # Get all of the data from the database
+        queryset = self.model.objects.all()
+        items = queryset.all()
+
+        items = sorted(items, key=lambda x: x.country_code)
+
+        # Items to be returned by this method
+        returned_items = []
+
+        for key, group in groupby(items, lambda x: x.country_code):
+
+            item = { u'country_code': key,
+                     u'location': []
+                    }
+
+            for ele in group:
+                item[u'location'].append(ele.location)
+
+            unique_location = set(item[u'location'])
+            item[u'location'] = list(unique_location)
+
+            returned_items.append(item)
+
+        return returned_items
+
+
+class StateListByCountryView(BaseCourseView):
+    """
+    Get the number of enrolled users by location.
+
+    Location is calculated based on the user's IP address. Users whose location
+    cannot be determined are counted as having a country.name of UNKNOWN.
+
+    Countries are denoted by their ISO 3166 country code.
+
+    **Example request**
+
+        GET /api/v0/courses/{course_id}/enrollment/location/
+
+    **Response Values**
+
+        Returns counts of genders specified by users:
+
+            * course_id: The ID of the course for which data is returned.
+            * date: The date for which the enrollment count was computed.
+            * country: Contains the following fields:
+
+              * alpha2: The two-letter country code.
+              * alpha3: The three-letter country code.
+              * name: The country name.
+            * count: The count of users from the country.
+            * created: The date the count was computed.
+
+    **Parameters**
+
+        You can specify the start and end dates for which to count enrolled
+        users.
+
+        You specify dates in the format: YYYY-mm-dd; for
+        example, ``2014-12-15``.
+
+        If no start or end dates are specified, the data for the previous day is
+        returned.
+
+        start_date -- Date after which enrolled students are counted (inclusive).
+
+        end_date -- Date before which enrolled students are counted (exclusive).
+    """
+
+    slug = u'state'
+    serializer_class = serializers.StateListSerializer
+    model = models.CountryList
+
+    def get(self, request, *args, **kwargs):
+        self.country = self.kwargs.get('country')
+        return super(StateListByCountryView, self).get(request, *args, **kwargs)
+
+    def get_queryset(self):
+        # Get all of the data from the database
+        queryset = self.model.objects.filter(country_name=self.country)
+        items = queryset.all()
+
+        returned_items = []
+
+        lis = {u'location': []}
+
+        lis[u'country_code'] = items[0].country_code
+
+        for ele in items:
+            lis[u'location'].append(ele.location)
+
+        # Remove duplicate elements and convert back to a list
+        unique_states = set(lis[u'location'])
+        lis[u'location'] = list(unique_states)
+
+        returned_items.append(lis)
+
+        return returned_items
 # END
 
 

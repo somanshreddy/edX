@@ -262,6 +262,25 @@ class CourseEnrollmentByCountrySerializer(BaseCourseEnrollmentModelSerializer):
         fields = ('date', 'course_id', 'country', 'count', 'created')
 
 
+class CountryListSerializer(ModelSerializerWithCreatedField):
+    # pylint: disable=unexpected-keyword-arg, no-value-for-parameter
+
+    location = serializers.ListField()
+
+    class Meta(object):
+        model = models.CountryList
+        fields = ('country_code', 'location')
+
+
+class StateListSerializer(ModelSerializerWithCreatedField):
+    # pylint: disable=unexpected-keyword-arg, no-value-for-parameter
+
+    location = serializers.ListField()
+
+    class Meta(object):
+        model = models.CountryList
+        fields = ('country_code', 'location')
+
 class CourseEnrollmentByGenderSerializer(BaseCourseEnrollmentModelSerializer):
 
     female = serializers.ReadOnlyField()
@@ -368,6 +387,17 @@ class CourseActivityByAgeSerializer(serializers.ModelSerializer):
     class Meta(object):
         model = models.CourseActivityByAge
         fields = ('course_id', 'interval_start', 'interval_end', 'age', 'created')
+
+class CourseActivityByCountrySerializer(serializers.ModelSerializer):
+    location = serializers.DictField(required=False)
+    interval_start = serializers.DateTimeField(format=settings.DATETIME_FORMAT)
+    interval_end = serializers.DateTimeField(format=settings.DATETIME_FORMAT)
+    created = serializers.DateTimeField(format=settings.DATETIME_FORMAT)
+    country_code = serializers.CharField()
+
+    class Meta(object):
+        model = models.CourseActivityByCountry
+        fields = ('course_id', 'interval_start', 'interval_end', 'country_code', 'location', 'created')
 # END
 
 class VideoSerializer(ModelSerializerWithCreatedField):
