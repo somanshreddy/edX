@@ -522,6 +522,7 @@ class CourseActivityWeeklyAgeView(BaseCourseActivityView):
 
         return activity_type
 
+
 class CourseActivityWeeklyCountryView(BaseCourseActivityView):
     """
     Get counts of users who performed specific activities in a course based on their gender
@@ -562,6 +563,7 @@ class CourseActivityWeeklyCountryView(BaseCourseActivityView):
     serializer_class = serializers.CourseActivityByCountrySerializer
     model = models.CourseActivityByCountry
 
+    # Removed filter by label in views, have to go to urls.py and change
     def get(self, request, *args, **kwargs):
         self.country = self.kwargs.get('country')
         return super(CourseActivityWeeklyCountryView, self).get(request, *args, **kwargs)
@@ -572,33 +574,130 @@ class CourseActivityWeeklyCountryView(BaseCourseActivityView):
         queryset = self.apply_date_filtering(queryset)
         formatted_data = []
 
-        item = {
-            u'course_id': queryset[0].course_id,
-            u'interval_start': queryset[0].interval_start,
-            u'interval_end': queryset[0].interval_end,
-            u'created': None,
-            u'country_code': queryset[0].country_code,
-            u'location': {}
-        }
+        for key, group in groupby(queryset, lambda x: (x.course_id, x.interval_start, x.interval_end)):
+            # Iterate over groups and create a single item with gender data
 
-        for activity in queryset:
-            activity_type = self._format_activity_type(activity.activity_type)
+            item = {
+                u'course_id': key[0],
+                u'interval_start': key[1],
+                u'interval_end': key[2],
+                u'created': None,
+                u'country_code': queryset[0].country_code,
+                u'location': {}
+            }
 
-            if item[u'location'].get(activity.location) is None:
-                item[u'location'][activity.location] = {u'played_video': 0,
-                                                        u'posted_forum': 0,
-                                                        u'attempted_problem': 0,
-                                                        u'any': 0}
+            for activity in queryset:
+                activity_type = self._format_activity_type(activity.activity_type)
 
-            # Creates a new key if there is an activity type not specified above
-            # Added so that code is scalable to handle new activity types
-            if item[u'location'][activity.location].get(activity_type) is None:
-                item[u'location'][activity.location][activity_type] = 0
+                if item[u'location'].get(activity.location) is None:
+                    item[u'location'][activity.location] = {u'played_video': 0,
+                                                            u'posted_forum': 0,
+                                                            u'attempted_problem': 0,
+                                                            u'any': 0}
 
-            item[u'location'][activity.location][activity_type] += activity.count
-            item[u'created'] = max(activity.created, item[u'created']) if item[u'created'] else activity.created
+                # Creates a new key if there is an activity type not specified above
+                # Added so that code is scalable to handle new activity types
+                if item[u'location'][activity.location].get(activity_type) is None:
+                    item[u'location'][activity.location][activity_type] = 0
 
-        formatted_data.append(item)
+                item[u'location'][activity.location][activity_type] += activity.count
+                item[u'created'] = max(activity.created, item[u'created']) if item[u'created'] else activity.created
+
+            formatted_data.append(item)
+
+        return formatted_data
+
+    def _format_activity_type(self, activity_type):
+        activity_type = activity_type.lower()
+
+        # The data pipeline stores "any" as "active"; however, the API should display "any".
+        if activity_type == 'active':
+            activity_type = 'any'
+
+        return activity_type
+
+
+class CourseActivityWeeklyLocationView(BaseCourseActivityView):
+    """
+    Get counts of users who performed specific activities in a course based on their gender
+
+    **Example request**
+
+        GET /api/v0/courses/{course_id}/activity/gender/{label}/
+
+    **Response Values**
+
+        Returns a collection for each level of education reported by a user.
+        Each collection contains:
+
+            * course_id: The ID of the course for which data is returned.
+            * date: The date for which the enrollment count was computed.
+            * education_level: The education level for which the enrollment
+              count applies.
+            * count: The number of users who reported the specified education
+              level.
+            * created: The date the count was computed.
+
+    **Parameters**
+
+        You can specify the start and end dates for which to count enrolled
+        users.
+
+        You specify dates in the format: YYYY-mm-dd; for
+        example, ``2014-12-15``.
+
+        If no start or end dates are specified, the data for the previous day is
+        returned.
+
+        start_date -- Date after which enrolled students are counted (inclusive).
+
+        end_date -- Date before which enrolled students are counted (exclusive).
+    """
+    slug = u'activity-location'
+    serializer_class = serializers.CourseActivityByCountrySerializer
+    model = models.CourseActivityByCountry
+
+    def get(self, request, *args, **kwargs):
+        self.location = self.kwargs.get('location')
+        print(self.location)
+        return super(CourseActivityWeeklyLocationView, self).get(request, *args, **kwargs)
+
+    def get_queryset(self):
+        queryset = self.model.objects.filter(course_id=self.course_id,
+                                             location=self.location)
+        queryset = self.apply_date_filtering(queryset)
+        formatted_data = []
+
+        for key, group in groupby(queryset, lambda x: (x.course_id, x.interval_start, x.interval_end)):
+            # Iterate over groups and create a single item with gender data
+
+            item = {
+                u'course_id': key[0],
+                u'interval_start': key[1],
+                u'interval_end': key[2],
+                u'created': None,
+                u'country_code': queryset[0].country_code,
+                u'location': {}
+            }
+
+            for activity in queryset:
+                activity_type = self._format_activity_type(activity.activity_type)
+
+                if item[u'location'].get(activity.location) is None:
+                    item[u'location'][activity.location] = {u'played_video': 0,
+                                                            u'posted_forum': 0,
+                                                            u'attempted_problem': 0,
+                                                            u'any': 0}
+
+                # Creates a new key if there is an activity type not specified above
+                # Added so that code is scalable to handle new activity types
+                if item[u'location'][activity.location].get(activity_type) is None:
+                    item[u'location'][activity.location][activity_type] = 0
+
+                item[u'location'][activity.location][activity_type] += activity.count
+                item[u'created'] = max(activity.created, item[u'created']) if item[u'created'] else activity.created
+
+            formatted_data.append(item)
 
         return formatted_data
 

@@ -93,6 +93,7 @@ class CourseActivityByAge(BaseCourseActivityWeekly):
         ordering = ('interval_end', 'interval_start', 'course_id', 'age')
         unique_together = [('course_id', 'interval_end', 'interval_start', 'activity_type', 'age')]
 
+
 class CourseActivityByCountry(BaseCourseActivityWeekly):
     country_code = models.CharField(max_length=255, null=False)
     country_name = models.CharField(max_length=255, null=False)
@@ -102,6 +103,7 @@ class CourseActivityByCountry(BaseCourseActivityWeekly):
         db_table = 'course_activity_location'
         ordering = ('interval_end', 'interval_start', 'course_id', 'country_name', 'location')
         unique_together = [('course_id', 'interval_end', 'interval_start', 'activity_type', 'country_name', 'location')]
+
 
 class CountryList(models.Model):
     country_code = models.CharField(max_length=255, null=False)
